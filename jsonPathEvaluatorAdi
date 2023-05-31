@@ -1,0 +1,87 @@
+package com.emiza.wallet.vault;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+//@SpringBootTest()
+class WalletApplicationTests {
+
+	@Test
+	void contextLoads() throws JsonProcessingException {
+
+		String str = "{\n" +
+				"    \"shopping\": {\n" +
+				"        \"location\": [\n" +
+				"            {\n" +
+				"                \"shopping\": \"c\"\n" +
+				"            },\n" +
+				"            {\n" +
+				"                \"shopping\": \"cc\"\n" +
+				"            }\n" +
+				"        ]\n" +
+				"    }\n" +
+				"}";
+
+		ObjectMapper objectMapper = new ObjectMapper();
+
+		String filter = "[\n" +
+				"    {\n" +
+				"        \"key\": \"shopping#location#shopping\",\n" +
+				"        \"value\": \"c\"\n" +
+				"    },\n" +
+				"    {\n" +
+				"        \"key\": \"shopping#location\",\n" +
+				"        \"value\": \"noida\"\n" +
+				"    }\n" +
+				"]";
+
+		List<Object> temp = objectMapper.readValue(filter, ArrayList.class);
+		for (Object i: temp) {
+			HashMap<String, Object> hm = objectMapper.convertValue(i, HashMap.class);
+			String[] pathArray = hm.get("key").toString().split("#");
+			System.out.println(filterResult(objectMapper.readTree(str), pathArray, 0, hm.get("value").toString()));
+		}
+
+	}
+
+	public static boolean filterResult (JsonNode jsonNode, String[] pathArray, int currentPath, String value) {
+		if (currentPath >= pathArray.length) {
+			return false;
+		}
+
+		JsonNode current = jsonNode.get(pathArray[currentPath]);
+
+		// Key is not present in the JSON Object
+		if (current == null) {
+//			System.out.println("nahi hai bhai");
+			return false;
+		}
+
+
+		if (current.isArray()) {
+			for (JsonNode jsonNode1 : current) {
+				if(filterResult(jsonNode1, pathArray, currentPath + 1, value))
+					return true;
+			}
+			return false;
+		} else if (current.isValueNode() ) {
+			if (currentPath == pathArray.length - 1 && current.asText().equals(value)) {
+//				System.out.println("mil gaya");
+				return true;
+			}
+//			System.out.println("nahi mila bhai");
+			return false;
+		} else {  // Object
+			return filterResult(current, pathArray, currentPath + 1, value);
+		}
+	}
+
+}
+
